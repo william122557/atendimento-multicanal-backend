@@ -6,7 +6,6 @@ import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
 
 async function bootstrap() {
-  console.log('DATABASE_URL:', process.env.DATABASE_URL);
   const app = await NestFactory.create(AppModule);
 
   app.enableShutdownHooks();
