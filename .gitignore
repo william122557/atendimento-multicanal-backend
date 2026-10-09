@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+coverage/
+*.log
+body.json
+product.json
+npx
+.agents/
+.claude/
+.cursor/
+.devin/

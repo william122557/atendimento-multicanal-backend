@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELED
+}
+
+enum CakeSize {
+  PEQUENO
+  GRANDE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum ProductSizeEnum {
+  PEQUENO
+  GRANDE
+}
+
+model User {
+  id                    Int                 @id @default(autoincrement())
+  email                 String              @unique
+  passwordHash          String
+  isActive              Boolean             @default(true)
+  subscriptionStatus    SubscriptionStatus? @default(INACTIVE)
+  subscriptionExpiresAt DateTime?
+  lastLoginAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model Product {
+  id           Int           @id @default(autoincrement())
+  name         String
+  category     String
+  available    Boolean       @default(true)
+  displayOrder Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  sizes        ProductSize[]
+}
+
+model ProductSize {
+  id         Int             @id @default(autoincrement())
+  productId  Int
+  size       ProductSizeEnum
+  available  Boolean         @default(true)
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@index([productId])
+  @@unique([productId, size])
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id            Int         @id @default(autoincrement())
+  quantity      Int
+  orderId       Int
+  productSizeId Int
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productSize   ProductSize @relation(fields: [productSizeId], references: [id])
+
+  @@index([orderId])
+  @@index([productSizeId])
+}
