@@ -12,3 +12,5 @@ npx
 .claude/
 .cursor/
 .devin/
+migrations/
+prisma/schema - Copia.prisma
