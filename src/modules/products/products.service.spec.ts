@@ -6,6 +6,7 @@ import { ProductsService } from './products.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
+
   let prisma: {
     product: {
       findMany: jest.Mock;
@@ -73,21 +74,31 @@ describe('ProductsService', () => {
     prisma.product.findMany.mockResolvedValue(products);
 
     await expect(service.findAll()).resolves.toEqual(products);
+
     expect(prisma.product.findMany).toHaveBeenCalledTimes(1);
+
     expect(prisma.product.findMany).toHaveBeenCalledWith({
       include: {
         sizes: true,
       },
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      orderBy: [
+        { displayOrder: 'asc' },
+        { name: 'asc' },
+      ],
     });
   });
 
   it('findOne deve retornar um produto quando existir', async () => {
-    const product = { id: 1, name: 'Pizza', sizes: [] };
+    const product = {
+      id: 1,
+      name: 'Pizza',
+      sizes: [],
+    };
 
     prisma.product.findUnique.mockResolvedValue(product);
 
     await expect(service.findOne(1)).resolves.toEqual(product);
+
     expect(prisma.product.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
       include: {
@@ -99,7 +110,9 @@ describe('ProductsService', () => {
   it('findOne deve lançar NotFoundException quando não existir', async () => {
     prisma.product.findUnique.mockResolvedValue(null);
 
-    await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.findOne(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('create deve criar um produto com sizes', async () => {
@@ -126,6 +139,7 @@ describe('ProductsService', () => {
     prisma.product.create.mockResolvedValue(created);
 
     await expect(service.create(dto as any)).resolves.toEqual(created);
+
     expect(prisma.product.create).toHaveBeenCalledWith({
       data: {
         name: dto.name,
@@ -165,7 +179,10 @@ describe('ProductsService', () => {
     prisma.product.update.mockResolvedValue(updated);
 
     await expect(
-      service.update(1, { name: 'Novo nome', available: false } as any),
+      service.update(1, {
+        name: 'Novo nome',
+        available: false,
+      }),
     ).resolves.toEqual(updated);
 
     expect(prisma.product.findUnique).toHaveBeenCalledWith({
@@ -176,21 +193,34 @@ describe('ProductsService', () => {
     });
 
     expect(prisma.$transaction).toHaveBeenCalled();
-    expect(prisma.product.update).toHaveBeenCalled();
+
+    expect(prisma.product.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: {
+        name: 'Novo nome',
+        available: false,
+      },
+      include: {
+        sizes: true,
+      },
+    });
   });
 
   it('update deve lançar NotFoundException se o produto não existir', async () => {
     prisma.product.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.update(999, { name: 'X' } as any),
+      service.update(999, { name: 'X' }),
     ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.product.update).not.toHaveBeenCalled();
   });
 
   it('updateSize deve atualizar um tamanho existente', async () => {
     const product = {
       id: 1,
       name: 'Pizza',
+      available: true,
       sizes: [
         { id: 100, size: 'PEQUENO', available: true },
         { id: 101, size: 'GRANDE', available: false },
@@ -216,8 +246,6 @@ describe('ProductsService', () => {
       available: true,
     });
 
-    prisma.productSize.count.mockResolvedValue(1);
-
     prisma.productSize.update.mockResolvedValue({
       id: 100,
       productId: 1,
@@ -225,9 +253,13 @@ describe('ProductsService', () => {
       available: false,
     });
 
-    await expect(
-      service.updateSize(1, 100, { available: false } as any),
-    ).resolves.toEqual(updatedProduct);
+    const result = await service.updateSize(
+      1,
+      100,
+      { available: false },
+    );
+
+    expect(result).toEqual(updatedProduct);
 
     expect(prisma.productSize.findFirst).toHaveBeenCalledWith({
       where: {
@@ -236,25 +268,98 @@ describe('ProductsService', () => {
       },
     });
 
-    expect(prisma.productSize.count).toHaveBeenCalled();
     expect(prisma.productSize.update).toHaveBeenCalledWith({
       where: { id: 100 },
       data: {
         available: false,
       },
     });
+
+    expect(prisma.productSize.count).not.toHaveBeenCalled();
+    expect(prisma.product.update).not.toHaveBeenCalled();
+  });
+
+  it('updateSize deve manter o produto pausado ao ativar um tamanho', async () => {
+    const product = {
+      id: 1,
+      name: 'Bolo de chocolate',
+      available: false,
+      sizes: [
+        {
+          id: 100,
+          productId: 1,
+          size: 'PEQUENO',
+          available: false,
+        },
+        {
+          id: 101,
+          productId: 1,
+          size: 'GRANDE',
+          available: false,
+        },
+      ],
+    };
+
+    const updatedProduct = {
+      ...product,
+      sizes: [
+        {
+          ...product.sizes[0],
+          available: true,
+        },
+        product.sizes[1],
+      ],
+    };
+
+    prisma.product.findUnique
+      .mockResolvedValueOnce(product)
+      .mockResolvedValueOnce(updatedProduct);
+
+    prisma.productSize.findFirst.mockResolvedValue(product.sizes[0]);
+
+    prisma.productSize.update.mockResolvedValue(updatedProduct.sizes[0]);
+
+    const result = await service.updateSize(
+      1,
+      100,
+      { available: true },
+    );
+
+    expect(prisma.productSize.update).toHaveBeenCalledWith({
+      where: { id: 100 },
+      data: {
+        available: true,
+      },
+    });
+
+    expect(prisma.product.update).not.toHaveBeenCalled();
+    expect(prisma.productSize.count).not.toHaveBeenCalled();
+
+    expect(result).toEqual(updatedProduct);
+    expect(result?.available).toBe(false);
+
+    expect(
+      result?.sizes.find((size) => size.id === 100)?.available,
+    ).toBe(true);
   });
 
   it('updateSize deve lançar NotFoundException se o produto não existir', async () => {
     prisma.product.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.updateSize(999, 100, { available: false } as any),
+      service.updateSize(999, 100, { available: false }),
     ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.productSize.update).not.toHaveBeenCalled();
+    expect(prisma.product.update).not.toHaveBeenCalled();
   });
 
   it('remove deve deletar um produto existente', async () => {
-    const product = { id: 1, name: 'Pizza', sizes: [] };
+    const product = {
+      id: 1,
+      name: 'Pizza',
+      sizes: [],
+    };
 
     prisma.product.findUnique.mockResolvedValue(product);
     prisma.productSize.deleteMany.mockResolvedValue({ count: 1 });
@@ -270,9 +375,11 @@ describe('ProductsService', () => {
     });
 
     expect(prisma.$transaction).toHaveBeenCalled();
+
     expect(prisma.productSize.deleteMany).toHaveBeenCalledWith({
       where: { productId: 1 },
     });
+
     expect(prisma.product.delete).toHaveBeenCalledWith({
       where: { id: 1 },
     });
@@ -281,6 +388,11 @@ describe('ProductsService', () => {
   it('remove deve lançar NotFoundException se o produto não existir', async () => {
     prisma.product.findUnique.mockResolvedValue(null);
 
-    await expect(service.remove(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.remove(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    expect(prisma.productSize.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.product.delete).not.toHaveBeenCalled();
   });
 });

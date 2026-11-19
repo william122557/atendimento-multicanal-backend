@@ -83,3 +83,14 @@ model OrderItem {
   @@index([orderId])
   @@index([productSizeId])
 }
+model IfoodToken {
+  id              String   @id @default(cuid())
+  merchantId      String   @unique
+  accessToken     String
+  refreshToken    String
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("ifood_tokens")
+}

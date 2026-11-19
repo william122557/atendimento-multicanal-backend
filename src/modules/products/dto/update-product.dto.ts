@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsInt,
@@ -12,7 +14,7 @@ import { CreateProductSizeDto } from './create-product-size.dto';
 
 export class UpdateProductDto {
   @ApiPropertyOptional({
-    example: 'X-Burger',
+    example: 'Bolo de Cenoura',
     description: 'Nome do produto.',
   })
   @IsOptional()
@@ -20,7 +22,7 @@ export class UpdateProductDto {
   name?: string;
 
   @ApiPropertyOptional({
-    example: 'Lanches',
+    example: 'Tradicional',
     description: 'Categoria do produto.',
   })
   @IsOptional()
@@ -50,10 +52,17 @@ export class UpdateProductDto {
       { size: 'PEQUENO', available: true },
       { size: 'GRANDE', available: false },
     ],
-    description: 'Lista de tamanhos do produto.',
+    description:
+      'Lista completa dos tamanhos que o produto deverá manter. ' +
+      'Tamanhos existentes preservam seus IDs. ' +
+      'Se o campo for omitido, os tamanhos não serão alterados.',
   })
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique((item: CreateProductSizeDto) => item.size, {
+    message: 'Não é permitido repetir tamanhos no mesmo produto.',
+  })
   @ValidateNested({ each: true })
   @Type(() => CreateProductSizeDto)
   sizes?: CreateProductSizeDto[];

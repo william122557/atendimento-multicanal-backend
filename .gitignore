@@ -14,3 +14,36 @@ npx
 .devin/
 migrations/
 prisma/schema - Copia.prisma
+
+# Ambiente e segredos
+.env
+.env.*
+*.env
+
+# Dependências
+node_modules/
+
+# Build e instaladores
+dist/
+build/
+release/
+installer/
+*.iss
+
+# Backups e arquivos temporários
+backups/
+*.bak
+*.bak-*
+*- Copia.*
+*- Copia.ts
+
+# Arquivos de prompt e anotações locais
+prompt*.txt
+
+# Sistema
+Thumbs.db
+.DS_Store
+
+# Backups do painel
+public/painel/index.backup.html
+public/painel/index.html.txt

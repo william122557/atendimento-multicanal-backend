@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel iFood</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f5f7;
+      color: #222;
+    }
+
+    header {
+      background: #ea1d2c;
+      color: #fff;
+      padding: 18px 24px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar-label {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #ea1d2c;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .card h2 {
+      margin-top: 0;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .item-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .status-label {
+      font-size: 13px;
+      font-weight: bold;
+      min-width: 90px;
+      text-align: right;
+    }
+
+    .status-label.available {
+      color: #127a3c;
+    }
+
+    .status-label.unavailable {
+      color: #888;
+    }
+
+    .status-label.mixed {
+      color: #946200;
+    }
+
+    .switch {
+      position: relative;
+      width: 64px;
+      height: 32px;
+      padding: 0;
+      background: #fff;
+      border: 2px solid #d0d0d0;
+      border-radius: 20px;
+      cursor: pointer;
+      transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .switch.available {
+      background: #ea1d2c;
+      border-color: #ea1d2c;
+    }
+
+    .switch:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .switch:focus-visible {
+      outline: 3px solid #195db5;
+      outline-offset: 3px;
+    }
+
+    .switch-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s ease;
+    }
+
+    .switch.available .switch-knob {
+      transform: translateX(32px);
+    }
+
+    .group-title {
+      margin: 18px 0 8px;
+      font-size: 14px;
+      color: #666;
+      text-transform: uppercase;
+    }
+
+    .option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid #e3e3e3;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .option.blocked {
+      opacity: 0.6;
+    }
+
+    .option-name {
+      font-weight: bold;
+    }
+
+    .option-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .message.success {
+      background: #e6f7ec;
+      color: #127a3c;
+      display: block;
+    }
+
+    .message.error {
+      background: #fdeaea;
+      color: #b3261e;
+      display: block;
+    }
+
+    .message.info {
+      background: #eaf2ff;
+      color: #195096;
+      display: block;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+    }
+
+    .help-text {
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #content.busy {
+      opacity: 0.65;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 16px;
+      }
+
+      header h1 {
+        font-size: 19px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .item-header,
+      .option {
+        flex-wrap: wrap;
+      }
+
+      .option-controls {
+        margin-left: auto;
+      }
+
+      .toolbar {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Painel de disponibilidade — iFood</h1>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <span id="last-update" class="toolbar-label">
+        Nenhuma consulta concluída.
+      </span>
+
+      <button
+        id="refresh-button"
+        class="button"
+        type="button"
+      >
+        Atualizar cardápio
+      </button>
+    </div>
+
+    <div
+      id="message"
+      class="message"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <div id="content">
+      <div class="loading">Carregando cardápio...</div>
+    </div>
+  </main>
+
+  <script>
+    const apiUrl = "http://localhost:3333/api/ifood/auth";
+
+    let operationInProgress = false;
+    let catalogLoading = false;
+
+    const massaConfig = {
+      branca: {
+        pequeno: {
+          items: [
+            "Bolo recheado nuteninho",
+            "Chantininho com morango"
+          ],
+          groupName: "Massa branca pequena",
+          optionName: "Tamanho pequeno"
+        },
+        grande: {
+          items: [
+            "Bolo recheado nuteninho",
+            "Chantininho com morango"
+          ],
+          groupName: "Massa branca grande",
+          optionName: "Tamanho grande"
+        }
+      },
+      chocolate: {
+        pequeno: {
+          items: [
+            "Bolo recheado chocolate com brigadeiro",
+            "Chocolate com morango"
+          ],
+          groupName: "Massa chocolate pequena",
+          optionName: "Tamanho pequeno"
+        },
+        grande: {
+          items: [
+            "Bolo recheado chocolate com brigadeiro",
+            "Chocolate com morango"
+          ],
+          groupName: "Massa chocolate grande",
+          optionName: "Tamanho grande"
+        }
+      }
+    };
+
+    function normalize(value) {
+      return String(value || "")
+        .trim()
+        .toLocaleLowerCase("pt-BR");
+    }
+
+    function errorMessage(error) {
+      return error instanceof Error
+        ? error.message
+        : String(error);
+    }
+
+    function responseMessage(data, fallback) {
+      if (typeof data?.message === "string") {
+        return data.message;
+      }
+
+      if (Array.isArray(data?.message)) {
+        return data.message.join(" ");
+      }
+
+      return fallback;
+    }
+
+    function showMessage(type, text) {
+      const message = document.getElementById("message");
+
+      message.className = type
+        ? `message ${type}`
+        : "message";
+
+      message.textContent = text || "";
+    }
+
+    function syncBusyState() {
+      const busy = operationInProgress || catalogLoading;
+      const content = document.getElementById("content");
+      const refreshButton = document.getElementById("refresh-button");
+
+      content.classList.toggle("busy", busy);
+      content.setAttribute("aria-busy", String(busy));
+
+      refreshButton.disabled = busy;
+
+      document.querySelectorAll(".switch").forEach((toggle) => {
+        toggle.disabled =
+          busy || toggle.dataset.blocked === "true";
+      });
+    }
+
+    async function readJson(response) {
+      try {
+        return await response.json();
+      } catch {
+        throw new Error(
+          `O backend retornou uma resposta inválida ` +
+          `(HTTP ${response.status}).`
+        );
+      }
+    }
+
+    async function loadCatalog({ preserveMessage = false } = {}) {
+      if (catalogLoading) {
+        return false;
+      }
+
+      const content = document.getElementById("content");
+
+      catalogLoading = true;
+      syncBusyState();
+
+      content.innerHTML =
+        '<div class="loading">' +
+        'Consultando estado atual no iFood...' +
+        '</div>';
+
+      if (!preserveMessage) {
+        showMessage("", "");
+      }
+
+      try {
+        const response = await fetch(`${apiUrl}/categories`, {
+          cache: "no-store"
+        });
+
+        const data = await readJson(response);
+
+        if (
+          !response.ok ||
+          data.success === false ||
+          !Array.isArray(data.categories)
+        ) {
+          throw new Error(
+            responseMessage(
+              data,
+              "Não foi possível carregar o cardápio."
+            )
+          );
+        }
+
+        renderCatalog(data.categories);
+
+        const time = new Date().toLocaleTimeString("pt-BR");
+
+        document.getElementById("last-update").textContent =
+          `Última consulta concluída às ${time}.`;
+
+        return true;
+      } catch (error) {
+        content.innerHTML = "";
+
+        const message = document.getElementById("message");
+        const previousMessage = preserveMessage
+          ? message.textContent
+          : "";
+
+        const detail = errorMessage(error);
+
+        showMessage(
+          "error",
+          previousMessage
+            ? `${previousMessage} Falha ao reler o catálogo: ${detail}`
+            : detail
+        );
+
+        document.getElementById("last-update").textContent =
+          "Falha na consulta. O estado atual não foi confirmado.";
+
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "button";
+        retry.textContent = "Tentar carregar novamente";
+
+        retry.onclick = () => {
+          if (!operationInProgress && !catalogLoading) {
+            loadCatalog();
+          }
+        };
+
+        content.appendChild(retry);
+        return false;
+      } finally {
+        catalogLoading = false;
+        syncBusyState();
+      }
+    }
+
+    function renderCatalog(categories) {
+      const content = document.getElementById("content");
+      content.innerHTML = "";
+
+      content.appendChild(createMassaControls(categories));
+
+      categories.forEach((category) => {
+        const categoryCard = document.createElement("div");
+        categoryCard.className = "card";
+
+        const title = document.createElement("h2");
+        title.textContent = category.name;
+        categoryCard.appendChild(title);
+
+        (category.items || []).forEach((item) => {
+          categoryCard.appendChild(createItemCard(item));
+        });
+
+        content.appendChild(categoryCard);
+      });
+    }
+
+    function getMassaState(categories, massa, tamanho) {
+      const target = massaConfig[massa][tamanho];
+
+      const items = categories.flatMap(
+        (category) => category.items || []
+      );
+
+      const options = [];
+
+      for (const itemName of target.items) {
+        const matchingItems = items.filter(
+          (item) => normalize(item.name) === normalize(itemName)
+        );
+
+        if (matchingItems.length !== 1) {
+          return {
+            available: false,
+            blocked: true,
+            label: "Verificar cadastro",
+            style: "mixed"
+          };
+        }
+
+        const matchingGroups = (
+          matchingItems[0].optionGroups || []
+        ).filter(
+          (group) =>
+            normalize(group.name) === normalize(target.groupName)
+        );
+
+        if (matchingGroups.length !== 1) {
+          return {
+            available: false,
+            blocked: true,
+            label: "Verificar cadastro",
+            style: "mixed"
+          };
+        }
+
+        const matchingOptions = (
+          matchingGroups[0].options || []
+        ).filter(
+          (option) =>
+            normalize(option.name) === normalize(target.optionName)
+        );
+
+        if (matchingOptions.length !== 1) {
+          return {
+            available: false,
+            blocked: true,
+            label: "Verificar cadastro",
+            style: "mixed"
+          };
+        }
+
+        options.push(matchingOptions[0]);
+      }
+
+      const allAvailable = options.every(
+        (option) => option.status === "AVAILABLE"
+      );
+
+      const allUnavailable = options.every(
+        (option) => option.status === "UNAVAILABLE"
+      );
+
+      if (allAvailable) {
+        return {
+          available: true,
+          blocked: false,
+          label: "Ativado",
+          style: "available"
+        };
+      }
+
+      if (allUnavailable) {
+        return {
+          available: false,
+          blocked: false,
+          label: "Desativado",
+          style: "unavailable"
+        };
+      }
+
+      const hasUnknownStatus = options.some(
+        (option) =>
+          option.status !== "AVAILABLE" &&
+          option.status !== "UNAVAILABLE"
+      );
+
+      return {
+        available: false,
+        blocked: hasUnknownStatus,
+        label: hasUnknownStatus
+          ? "Estado desconhecido"
+          : "Parcial",
+        style: "mixed"
+      };
+    }
+
+    function createMassaControls(categories) {
+      const section = document.createElement("div");
+      section.className = "card";
+
+      const title = document.createElement("h2");
+      title.textContent = "Controles de massa";
+      section.appendChild(title);
+
+      const help = document.createElement("p");
+      help.className = "help-text";
+      help.textContent =
+        "Cada controle altera o tamanho correspondente nos dois " +
+        "bolos da mesma massa. Se aparecer “Parcial”, um clique " +
+        "solicita a ativação das duas opções. Os estados aqui " +
+        "representam as opções, não a disponibilidade dos itens principais.";
+      section.appendChild(help);
+
+      const controls = [
+        {
+          massa: "branca",
+          tamanho: "pequeno",
+          label: "Massa branca — Pequeno"
+        },
+        {
+          massa: "branca",
+          tamanho: "grande",
+          label: "Massa branca — Grande"
+        },
+        {
+          massa: "chocolate",
+          tamanho: "pequeno",
+          label: "Massa chocolate — Pequeno"
+        },
+        {
+          massa: "chocolate",
+          tamanho: "grande",
+          label: "Massa chocolate — Grande"
+        }
+      ];
+
+      controls.forEach((control) => {
+        const row = document.createElement("div");
+        row.className = "option";
+
+        const name = document.createElement("div");
+        name.className = "option-name";
+        name.textContent = control.label;
+
+        const controlsWrapper = document.createElement("div");
+        controlsWrapper.className = "option-controls";
+
+        const state = getMassaState(
+          categories,
+          control.massa,
+          control.tamanho
+        );
+
+        const status = document.createElement("span");
+        status.className = `status-label ${state.style}`;
+        status.textContent = state.label;
+
+        const toggle = createToggle(
+          `${control.massa}-${control.tamanho}`,
+          "massa",
+          state.available,
+          state.blocked,
+          control.label
+        );
+
+        if (state.blocked) {
+          toggle.title =
+            "Controle bloqueado: confira nomes, duplicidades " +
+            "e estados das opções no catálogo.";
+        } else if (state.label === "Parcial") {
+          toggle.title =
+            "As opções estão diferentes. Clique para ativar ambas.";
+        }
+
+        controlsWrapper.appendChild(status);
+        controlsWrapper.appendChild(toggle);
+
+        row.appendChild(name);
+        row.appendChild(controlsWrapper);
+        section.appendChild(row);
+      });
+
+      return section;
+    }
+
+    function getStatusPresentation(status) {
+      if (status === "AVAILABLE") {
+        return {
+          label: "Ativado",
+          style: "available",
+          known: true
+        };
+      }
+
+      if (status === "UNAVAILABLE") {
+        return {
+          label: "Desativado",
+          style: "unavailable",
+          known: true
+        };
+      }
+
+      return {
+        label: "Desconhecido",
+        style: "mixed",
+        known: false
+      };
+    }
+
+    function createItemCard(item) {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const isItemAvailable = item.status === "AVAILABLE";
+      const presentation = getStatusPresentation(item.status);
+
+      const header = document.createElement("div");
+      header.className = "item-header";
+
+      const name = document.createElement("div");
+      name.className = "item-name";
+      name.textContent = item.name;
+
+      const controls = document.createElement("div");
+      controls.className = "option-controls";
+
+      const status = document.createElement("span");
+      status.className =
+        `status-label ${presentation.style}`;
+      status.textContent = presentation.label;
+
+      const toggle = createToggle(
+        item.id,
+        "items",
+        isItemAvailable,
+        !presentation.known,
+        item.name
+      );
+
+      controls.appendChild(status);
+      controls.appendChild(toggle);
+
+      header.appendChild(name);
+      header.appendChild(controls);
+
+      card.appendChild(header);
+
+      (item.optionGroups || []).forEach((group) => {
+        const groupTitle = document.createElement("div");
+        groupTitle.className = "group-title";
+        groupTitle.textContent = group.name;
+        card.appendChild(groupTitle);
+
+        (group.options || []).forEach((option) => {
+          card.appendChild(
+            createOptionRow(option, isItemAvailable)
+          );
+        });
+      });
+
+      return card;
+    }
+
+    function createOptionRow(option, isItemAvailable) {
+      const row = document.createElement("div");
+      row.className =
+        `option ${isItemAvailable ? "" : "blocked"}`;
+
+      const name = document.createElement("div");
+      name.className = "option-name";
+      name.textContent = option.name;
+
+      const controls = document.createElement("div");
+      controls.className = "option-controls";
+
+      const presentation = getStatusPresentation(option.status);
+
+      const status = document.createElement("span");
+      status.className =
+        `status-label ${presentation.style}`;
+      status.textContent = presentation.label;
+
+      const toggle = createToggle(
+        option.id,
+        "options",
+        option.status === "AVAILABLE",
+        !isItemAvailable || !presentation.known,
+        option.name
+      );
+
+      if (!isItemAvailable) {
+        toggle.title =
+          "Ative o item antes de alterar este tamanho.";
+      }
+
+      controls.appendChild(status);
+      controls.appendChild(toggle);
+
+      row.appendChild(name);
+      row.appendChild(controls);
+
+      return row;
+    }
+
+    function createToggle(
+      id,
+      type,
+      isAvailable,
+      isBlocked,
+      label
+    ) {
+      const toggle = document.createElement("button");
+
+      toggle.type = "button";
+      toggle.className =
+        `switch ${isAvailable ? "available" : ""}`;
+
+      toggle.dataset.blocked = String(isBlocked);
+
+      toggle.disabled =
+        isBlocked || operationInProgress || catalogLoading;
+
+      toggle.setAttribute("role", "switch");
+      toggle.setAttribute(
+        "aria-checked",
+        String(isAvailable)
+      );
+      toggle.setAttribute(
+        "aria-label",
+        label || "Alterar disponibilidade"
+      );
+
+      toggle.title = isBlocked
+        ? "Controle indisponível. Confira o cadastro e o estado do item."
+        : isAvailable
+          ? "Clique para desativar"
+          : "Clique para ativar";
+
+      const knob = document.createElement("span");
+      knob.className = "switch-knob";
+      knob.setAttribute("aria-hidden", "true");
+      toggle.appendChild(knob);
+
+      toggle.onclick = async () => {
+        if (
+          operationInProgress ||
+          catalogLoading ||
+          isBlocked ||
+          toggle.disabled
+        ) {
+          return;
+        }
+
+        const nextStatus = isAvailable
+          ? "UNAVAILABLE"
+          : "AVAILABLE";
+
+        await updateStatus(
+          type,
+          id,
+          nextStatus,
+          label
+        );
+      };
+
+      return toggle;
+    }
+
+    async function updateStatus(type, id, status, label) {
+      if (operationInProgress || catalogLoading) {
+        return;
+      }
+
+      operationInProgress = true;
+      syncBusyState();
+
+      const targetLabel = label || "Controle selecionado";
+
+      showMessage(
+        "info",
+        `${targetLabel}: atualizando disponibilidade no iFood...`
+      );
+
+      try {
+        let url =
+          `${apiUrl}/${type}/${encodeURIComponent(id)}/status`;
+
+        if (type === "massa") {
+          const [massa, tamanho] = id.split("-");
+
+          url =
+            `${apiUrl}/massa/` +
+            `${encodeURIComponent(massa)}/` +
+            `${encodeURIComponent(tamanho)}/status`;
+        }
+
+        const response = await fetch(url, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ status })
+        });
+
+        const data = await readJson(response);
+
+        if (!response.ok || data.success === false) {
+          throw new Error(
+            responseMessage(
+              data,
+              "Não foi possível atualizar o status."
+            )
+          );
+        }
+
+        showMessage(
+          "info",
+          `${targetLabel}: o backend informou sucesso. ` +
+          "Relendo o catálogo do iFood..."
+        );
+
+        const catalogLoaded = await loadCatalog({
+          preserveMessage: true
+        });
+
+        if (catalogLoaded) {
+          showMessage(
+            "success",
+            `${targetLabel}: o backend informou a alteração para ` +
+            `${status === "AVAILABLE" ? "ativado" : "desativado"}. ` +
+            "O catálogo foi consultado novamente; confira os estados abaixo."
+          );
+        }
+      } catch (error) {
+        const detail = errorMessage(error);
+
+        showMessage(
+          "error",
+          `${targetLabel}: não foi possível confirmar a conclusão ` +
+          `da operação. ${detail} ` +
+          "Pode ter ocorrido alteração parcial. Relendo o catálogo..."
+        );
+
+        const catalogLoaded = await loadCatalog({
+          preserveMessage: true
+        });
+
+        if (catalogLoaded) {
+          showMessage(
+            "error",
+            `${targetLabel}: não foi possível confirmar a conclusão ` +
+            `da operação. ${detail} ` +
+            "O catálogo foi relido. Confira os estados abaixo " +
+            "antes de tentar novamente."
+          );
+        }
+      } finally {
+        operationInProgress = false;
+        syncBusyState();
+      }
+    }
+
+    document.getElementById("refresh-button").onclick = () => {
+      if (!operationInProgress && !catalogLoading) {
+        loadCatalog();
+      }
+    };
+
+    loadCatalog();
+  </script>
+</body>
+</html>

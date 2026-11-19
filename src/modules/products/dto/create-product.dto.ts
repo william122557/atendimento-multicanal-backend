@@ -8,7 +8,6 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  Min,
   ValidateNested,
 } from 'class-validator';
 import { CreateProductSizeDto } from './create-product-size.dto';
@@ -29,12 +28,18 @@ export class CreateProductDto {
   category: string;
 
   @ApiPropertyOptional({
-  example: true,
-  description: 'Indica se o produto está disponível.',
-})
-@IsOptional()
-@IsBoolean()
-available?: boolean;
+    example: true,
+    description: 'Indica se o produto está disponível.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  available?: boolean;
+
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Ordem de exibição do produto.',
+  })
+  @IsOptional()
   @IsInt()
   displayOrder?: number;
 

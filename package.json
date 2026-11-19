@@ -3,7 +3,7 @@
   "type": "commonjs",
   "private": true,
   "version": "0.1.0",
-   "scripts": {
+  "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
@@ -20,6 +20,7 @@
     "@nestjs/jwt": "^12.0.2",
     "@nestjs/passport": "^12.0.0",
     "@nestjs/platform-express": "latest",
+    "@nestjs/serve-static": "^12.1.1",
     "@nestjs/swagger": "^12.0.2",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
